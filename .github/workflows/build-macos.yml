@@ -37,7 +37,7 @@ jobs:
         cmake --build .
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Sky114DebugApplication-macos
         path: build/appSky114DebugApplication
