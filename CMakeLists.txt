@@ -11,7 +11,7 @@ find_package(PahoMqttCpp REQUIRED)
 #find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml Graphs Mqtt)
 find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml Graphs)
 
-qt_standard_project_setup(REQUIRES 6.8)
+qt_standard_project_setup(REQUIRES 6.7)
 
 qt_add_executable(appSky114DebugApplication
     main.cpp

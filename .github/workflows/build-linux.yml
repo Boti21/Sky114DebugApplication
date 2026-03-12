@@ -14,13 +14,14 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
+        sudo add-apt-repository -y ppa:okirjak/qt6
+        sudo apt-get update
         sudo apt-get install -y \
           qt6-base-dev \
-          qt6-qml-dev \
-          qt6-quick-dev \
+          qt6-declarative-dev \
           qt6-graphs-dev \
           cmake \
-          build-essential \
+          build-essential \ 
           git
 
     - name: Build Paho MQTT C++
