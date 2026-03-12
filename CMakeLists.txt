@@ -9,7 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PahoMqttCpp REQUIRED)
 
 #find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml Graphs Mqtt)
-find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml Graphs)
+#find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml Graphs)
+find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml)
+find_package(Qt6 OPTIONAL_COMPONENTS Graphs)
 
 qt_standard_project_setup(REQUIRES 6.7)
 
@@ -35,16 +37,27 @@ set_target_properties(appSky114DebugApplication PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+# target_link_libraries(appSky114DebugApplication
+#     PRIVATE
+#     Qt6::Core
+#     Qt6::Gui
+#     Qt6::Qml
+#     Qt6::Quick
+#     Qt6::Graphs
+#     #Qt6::Mqtt
+#     PahoMqttCpp::paho-mqttpp3
+# )
 target_link_libraries(appSky114DebugApplication
     PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
-    Qt6::Graphs
-    #Qt6::Mqtt
     PahoMqttCpp::paho-mqttpp3
 )
+if(Qt6Graphs_FOUND)
+    target_link_libraries(appSky114DebugApplication PRIVATE Qt6::Graphs)
+endif()
 
 include(GNUInstallDirs)
 install(TARGETS appSky114DebugApplication

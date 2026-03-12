@@ -36,7 +36,8 @@ jobs:
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
           -DPAHO_BUILD_STATIC=ON \
-          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install"
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install" \
+          -Dpaho-mqtt-c_DIR="${{ github.workspace }}/paho-install/lib/cmake/eclipse-paho-mqtt-c"
         cmake --build .
         cmake --install . --prefix "${{ github.workspace }}/paho-install"
 

@@ -17,7 +17,6 @@ jobs:
         sudo apt-get install -y \
           qt6-base-dev \
           qt6-declarative-dev \
-          qt6-graphs-dev \
           cmake \
           build-essential \
           git

@@ -56,11 +56,11 @@ jobs:
 
     - name: Configure Qt Project
       run: |
+        $qtPath = "${{ env.Qt6_DIR }}"
+        $pahoPath = "${{ github.workspace }}\paho-install"
         mkdir build -ErrorAction SilentlyContinue
         cd build
-        cmake .. `
-          -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }};${{ github.workspace }}/paho-install" `
-          -DCMAKE_BUILD_TYPE=Release
+        cmake .. -DCMAKE_PREFIX_PATH="$qtPath;$pahoPath" -DCMAKE_BUILD_TYPE=Release
 
     - name: Build Qt Project
       run: |
