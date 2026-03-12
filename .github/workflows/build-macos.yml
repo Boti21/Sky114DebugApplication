@@ -1,0 +1,43 @@
+name: Build macOS
+
+on:
+  release: 
+    types: [ created ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        brew install qt@6 cmake
+
+    - name: Build Paho MQTT C++
+      run: |
+        git clone https://github.com/eclipse/paho.mqtt.cpp.git
+        cd paho.mqtt.cpp
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake --build .
+        cmake --install . --prefix "${{ github.workspace }}/paho-install"
+
+    - name: Configure Qt Project
+      run: |
+        mkdir build && cd build
+        cmake .. \
+          -DCMAKE_PREFIX_PATH="/usr/local/opt/qt@6;${{ github.workspace }}/paho-install" \
+          -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Qt Project
+      run: |
+        cd build
+        cmake --build .
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Sky114DebugApplication-macos
+        path: build/appSky114DebugApplication
