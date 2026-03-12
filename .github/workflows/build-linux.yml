@@ -1,0 +1,49 @@
+name: Build Linux
+
+on:
+  release: 
+    types: [ created ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          qt6-base-dev \
+          qt6-qml-dev \
+          qt6-quick-dev \
+          qt6-graphs-dev \
+          cmake \
+          build-essential \
+          git
+
+    - name: Build Paho MQTT C++
+      run: |
+        git clone https://github.com/eclipse/paho.mqtt.cpp.git
+        cd paho.mqtt.cpp
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake --build .
+        sudo cmake --install .
+
+    - name: Configure Qt Project
+      run: |
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Qt Project
+      run: |
+        cd build
+        cmake --build .
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Sky114DebugApplication-linux
+        path: build/appSky114DebugApplication
