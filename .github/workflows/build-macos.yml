@@ -1,7 +1,7 @@
 name: Build macOS
 
 on:
-  release: 
+  release:
     types: [ created ]
 
 jobs:
@@ -13,14 +13,18 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        brew install qt@6 cmake
-        
+        brew install qt@6 cmake openssl
+
+    - name: Remove Homebrew Paho
+      run: |
+        brew uninstall --ignore-dependencies paho-c paho-mqtt-cpp 2>/dev/null || true
+
     - name: Build Paho MQTT C
       run: |
         git clone https://github.com/eclipse/paho.mqtt.c.git
         cd paho.mqtt.c
         mkdir build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DPAHO_BUILD_STATIC=ON
         cmake --build .
         cmake --install . --prefix "${{ github.workspace }}/paho-install"
 
@@ -31,9 +35,8 @@ jobs:
         mkdir build && cd build
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install:/opt/homebrew" \
-          -Dpaho-mqtt-c_DIR="${{ github.workspace }}/paho-install/lib/cmake/paho-mqtt-c" \
-          -DCMAKE_FIND_DEBUG_MODE=ON
+          -DPAHO_BUILD_STATIC=ON \
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install"
         cmake --build .
         cmake --install . --prefix "${{ github.workspace }}/paho-install"
 

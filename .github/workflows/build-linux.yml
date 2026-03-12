@@ -1,7 +1,7 @@
 name: Build Linux
 
 on:
-  release: 
+  release:
     types: [ created ]
 
 jobs:
@@ -13,8 +13,6 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        sudo apt-get update
-        sudo add-apt-repository -y ppa:neon/ppa
         sudo apt-get update
         sudo apt-get install -y \
           qt6-base-dev \
@@ -48,7 +46,8 @@ jobs:
     - name: Configure Qt Project
       run: |
         mkdir build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake .. -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install"
 
     - name: Build Qt Project
       run: |
