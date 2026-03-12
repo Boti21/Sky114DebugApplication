@@ -24,12 +24,24 @@ jobs:
       with:
         cmake-version: '3.27.x'
 
+    - name: Build Paho MQTT C
+      run: |
+        git clone https://github.com/eclipse/paho.mqtt.c.git
+        cd paho.mqtt.c
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DPAHO_BUILD_STATIC=ON
+        cmake --build . --config Release
+        cmake --install . --prefix "${{ github.workspace }}/paho-install"
+
     - name: Build Paho MQTT C++
       run: |
         git clone https://github.com/eclipse/paho.mqtt.cpp.git
         cd paho.mqtt.cpp
         mkdir build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DPAHO_BUILD_STATIC=ON
+        cmake .. `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DPAHO_BUILD_STATIC=ON `
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install"
         cmake --build . --config Release
         cmake --install . --prefix "${{ github.workspace }}/paho-install"
 

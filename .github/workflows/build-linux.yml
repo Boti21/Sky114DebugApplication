@@ -14,24 +14,36 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo add-apt-repository -y ppa:okirjak/qt6
+        sudo add-apt-repository -y ppa:neon/ppa
         sudo apt-get update
         sudo apt-get install -y \
           qt6-base-dev \
           qt6-declarative-dev \
           qt6-graphs-dev \
           cmake \
-          build-essential \ 
+          build-essential \
           git
+
+    - name: Build Paho MQTT C
+      run: |
+        git clone https://github.com/eclipse/paho.mqtt.c.git
+        cd paho.mqtt.c
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DPAHO_BUILD_STATIC=ON
+        cmake --build .
+        sudo cmake --install . --prefix "${{ github.workspace }}/paho-install"
 
     - name: Build Paho MQTT C++
       run: |
         git clone https://github.com/eclipse/paho.mqtt.cpp.git
         cd paho.mqtt.cpp
         mkdir build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DPAHO_BUILD_STATIC=ON \
+          -DCMAKE_PREFIX_PATH="${{ github.workspace }}/paho-install"
         cmake --build .
-        sudo cmake --install .
+        sudo cmake --install . --prefix "${{ github.workspace }}/paho-install"
 
     - name: Configure Qt Project
       run: |
