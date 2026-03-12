@@ -1,0 +1,52 @@
+name: Build Windows
+
+on: 
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.8.0'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+
+    - name: Install CMake
+      uses: jwlawson/actions-setup-cmake@v1
+      with:
+        cmake-version: '3.27.x'
+
+    - name: Build Paho MQTT C++
+      run: |
+        git clone https://github.com/eclipse/paho.mqtt.cpp.git
+        cd paho.mqtt.cpp
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DPAHO_BUILD_STATIC=ON
+        cmake --build . --config Release
+        cmake --install . --prefix "${{ github.workspace }}/paho-install"
+
+    - name: Configure Qt Project
+      run: |
+        mkdir build && cd build
+        cmake .. `
+          -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }};${{ github.workspace }}/paho-install" `
+          -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Qt Project
+      run: |
+        cd build
+        cmake --build . --config Release
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Sky114DebugApplication-windows
+        path: build/Release/appSky114DebugApplication.exe
