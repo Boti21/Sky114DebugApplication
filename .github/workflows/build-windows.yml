@@ -46,7 +46,7 @@ jobs:
         cmake --build . --config Release
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Sky114DebugApplication-windows
         path: build/Release/appSky114DebugApplication.exe
