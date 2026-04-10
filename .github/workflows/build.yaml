@@ -26,7 +26,6 @@ jobs:
           version: '6.8.2'
           target: 'desktop'
           arch: 'gcc_64'
-          modules: 'qtwebsockets qtmqtt qtgraphs'
 
       # 2. Install WebAssembly Target
       - name: Install Qt WebAssembly
@@ -52,13 +51,13 @@ jobs:
           go-version: '1.22'
 
       - name: Build Go Executable (Linux AMD64)
-        run: GOOS=linux GOARCH=amd64 go build -o Sky114DebugApplication-linux-amd64 Sky114DebugApplication.go
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o Sky114DebugApplication-linux-amd64 Sky114DebugApplication.go
 
       - name: Build Go Executable (Windows AMD64)
-        run: GOOS=windows GOARCH=amd64 go build -o Sky114DebugApplication-windows-amd64.exe Sky114DebugApplication.go
+        run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o Sky114DebugApplication-windows-amd64.exe Sky114DebugApplication.go
 
       - name: Build Go Executable (Apple Silicon / macOS ARM64)
-        run: GOOS=darwin GOARCH=arm64 go build -o Sky114DebugApplication-darwin-arm64 Sky114DebugApplication.go
+        run: CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o Sky114DebugApplication-darwin-arm64 Sky114DebugApplication.go
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
