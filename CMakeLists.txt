@@ -80,7 +80,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 REQUIRED COMPONENTS Quick Core Gui Qml Graphs Mqtt WebSockets)
 #find_package(Qt6 OPTIONAL_COMPONENTS Graphs Charts)
 
-qt_standard_project_setup(REQUIRES 6.10)
+qt_standard_project_setup(REQUIRES 6.8)
 
 qt_policy(SET QTP0004 NEW)
 
