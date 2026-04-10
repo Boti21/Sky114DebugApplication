@@ -1,0 +1,64 @@
+name: Build Qt WebAssembly and Go Wrapper
+
+on:
+  release:
+    type: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          # Qt 6 generally requires specific emsdk versions. 
+          # 3.1.56 is stable for recent Qt 6 releases.
+          version: '3.1.56' 
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          # Note: If 6.10 is not yet available in the standard mirrors, 
+          # you may need to use '6.8.0' or enable pre-releases.
+          #version: '6.8.0' 
+          version: '6.10'
+          target: 'desktop'
+          arch: 'wasm_multithread'
+          modules: 'qtwebsockets qtmqtt qtgraphs'
+
+      - name: Configure and Build Qt WebAssembly
+        run: |
+          # Create the exact directory expected by the Go embed directive
+          mkdir -p build/WebAssembly_Qt_6_10_2_multi_threaded-Debug
+          cd build/WebAssembly_Qt_6_10_2_multi_threaded-Debug
+          
+          # Use qt-cmake to automatically configure for WebAssembly
+          qt-cmake ../../ -DCMAKE_BUILD_TYPE=Debug
+          cmake --build .
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build Go Executable (Linux AMD64)
+        run: GOOS=linux GOARCH=amd64 go build -o Sky114DebugApplication-linux-amd64 Sky114DebugApplication.go
+
+      - name: Build Go Executable (Windows AMD64)
+        run: GOOS=windows GOARCH=amd64 go build -o Sky114DebugApplication-windows-amd64.exe Sky114DebugApplication.go
+
+      - name: Build Go Executable (Apple Silicon / macOS ARM64)
+        run: GOOS=darwin GOARCH=arm64 go build -o Sky114DebugApplication-darwin-arm64 Sky114DebugApplication.go
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedded-servers
+          path: |
+            Sky114DebugApplication-linux-amd64
+            Sky114DebugApplication-windows-amd64.exe
+            Sky114DebugApplication-darwin-arm64
