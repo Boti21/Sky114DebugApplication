@@ -42,7 +42,7 @@ jobs:
           cd build/wasm
           
           # Call the specific WebAssembly qt-cmake
-          /home/runner/work/_temp/Qt/6.7.3/wasm_multithread/bin/qt-cmake ../../ -DCMAKE_BUILD_TYPE=Release
+          /home/runner/work/_temp/Qt/6.8.2/wasm/bin/qt-cmake ../../ -DCMAKE_BUILD_TYPE=Release
           cmake --build .
 
       - name: Setup Go
