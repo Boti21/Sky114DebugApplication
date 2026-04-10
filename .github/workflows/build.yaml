@@ -9,6 +9,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: List Available Qt Architectures
+        run: |
+          pip install aqtinstall
+          aqt list-qt linux desktop --arch 6.8.2
+          aqt list-qt linux desktop --modules 6.8.2 wasm_multithread || true
+          aqt list-qt linux desktop --modules 6.8.2 wasm_singlethread || true
+
+      
       - name: Checkout repository
         uses: actions/checkout@v4
 
