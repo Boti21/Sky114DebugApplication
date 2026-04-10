@@ -23,7 +23,7 @@ jobs:
       - name: Install Qt Host Tools
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.8.2'
+          version: '6.8.0'
           target: 'desktop'
           arch: 'linux_gcc_64'
 
@@ -31,7 +31,7 @@ jobs:
       - name: Install Qt WebAssembly
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.8.2'
+          version: '6.8.0'
           target: 'desktop'
           arch: 'wasm_multithread'
           modules: 'qtwebsockets qtmqtt qtgraphs'
@@ -42,7 +42,7 @@ jobs:
           cd build/wasm
           
           # Call the specific WebAssembly qt-cmake
-          /home/runner/work/_temp/Qt/6.8.2/wasm_multithread/bin/qt-cmake ../../ -DCMAKE_BUILD_TYPE=Release
+          /home/runner/work/_temp/Qt/6.8.0/wasm_multithread/bin/qt-cmake ../../ -DCMAKE_BUILD_TYPE=Release
           cmake --build .
 
       - name: Setup Go
