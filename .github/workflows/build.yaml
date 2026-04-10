@@ -24,8 +24,8 @@ jobs:
         with:
           # Note: If 6.10 is not yet available in the standard mirrors, 
           # you may need to use '6.8.0' or enable pre-releases.
-          #version: '6.8.0' 
-          version: '6.10'
+          version: '6.8.0' 
+          #version: '6.10'
           target: 'desktop'
           arch: 'wasm_multithread'
           modules: 'qtwebsockets qtmqtt qtgraphs'
