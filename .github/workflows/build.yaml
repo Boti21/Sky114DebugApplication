@@ -17,7 +17,7 @@ jobs:
         with:
           # Qt 6 generally requires specific emsdk versions. 
           # 3.1.56 is stable for recent Qt 6 releases.
-          version: '3.1.56' 
+          version: '3.1.50' 
 
       # 1. Install Host Qt (Required for build tools like moc, rcc)
       - name: Install Qt Host Tools
