@@ -19,25 +19,31 @@ jobs:
           # 3.1.56 is stable for recent Qt 6 releases.
           version: '3.1.56' 
 
-      - name: Install Qt
+      # 1. Install Host Qt (Required for build tools like moc, rcc)
+      - name: Install Qt Host Tools
         uses: jurplel/install-qt-action@v3
         with:
-          # Note: If 6.10 is not yet available in the standard mirrors, 
-          # you may need to use '6.8.0' or enable pre-releases.
-          version: '6.8.0' 
-          #version: '6.10'
+          version: '6.8.2'
+          target: 'desktop'
+          arch: 'gcc_64'
+          modules: 'qtwebsockets qtmqtt qtgraphs'
+
+      # 2. Install WebAssembly Target
+      - name: Install Qt WebAssembly
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.2'
           target: 'desktop'
           arch: 'wasm_multithread'
           modules: 'qtwebsockets qtmqtt qtgraphs'
 
       - name: Configure and Build Qt WebAssembly
         run: |
-          # Create the exact directory expected by the Go embed directive
-          mkdir -p build/WebAssembly_Qt_6_10_2_multi_threaded-Debug
-          cd build/WebAssembly_Qt_6_10_2_multi_threaded-Debug
+          mkdir -p build/wasm
+          cd build/wasm
           
-          # Use qt-cmake to automatically configure for WebAssembly
-          qt-cmake ../../ -DCMAKE_BUILD_TYPE=Debug
+          # Call the specific WebAssembly qt-cmake
+          /home/runner/work/_temp/Qt/6.8.2/wasm_multithread/bin/qt-cmake ../../ -DCMAKE_BUILD_TYPE=Release
           cmake --build .
 
       - name: Setup Go
