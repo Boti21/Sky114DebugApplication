@@ -1,187 +1,102 @@
-#ifdef USE_PAHO
-
 #include "mqtttransceiver.h"
+#include <QMqttTopicFilter>
+#include <QDebug>
 
 MqttTransceiver::MqttTransceiver(QObject *parent)
     : QObject(parent)
-{}
-
-bool MqttTransceiver::subscribeDefault()
 {
-    subscribe("foo", 0);
-    subscribe("robobot/cmd/ti", 0);
-    subscribe("robobot/cmd/T0", 0);
-    subscribe("robobot/graph", 0);
-    return true;
+    m_client = new QMqttClient(this);
+    m_client->setProtocolVersion(QMqttClient::MQTT_3_1_1);
+
+    connect(m_client, &QMqttClient::connected, this, &MqttTransceiver::onConnected);
+
+    connect(m_client, &QMqttClient::stateChanged,
+            this, [this](QMqttClient::ClientState state) {
+                qDebug() << "MQTT State:" << state
+                         << "host:" << m_client->hostname()
+                         << "port:" << m_client->port();
+                emit connectedChanged();
+                if (state == QMqttClient::Connected) {
+                    emit messageReceived("SYSTEM", "Connected!");
+                } else if (state == QMqttClient::Disconnected) {
+                    emit messageReceived("SYSTEM", "Disconnected");
+                }
+            });
+
+    connect(m_client, &QMqttClient::errorChanged,
+            this, [this](QMqttClient::ClientError error) {
+                qDebug() << "MQTT Error:" << error;
+                if (error != QMqttClient::NoError) {
+                    emit messageReceived(
+                        "SYSTEM", "Error: " + QString::number(error));
+                }
+            });
+
+    connect(m_client, &QMqttClient::messageReceived,
+            this, [this](const QByteArray &message,
+                   const QMqttTopicName &topic) {
+                emit messageReceived(topic.name(),
+                                     QString::fromUtf8(message));
+            });;
 }
 
-bool MqttTransceiver::setupHandlers()
+bool MqttTransceiver::isConnected() const
 {
-    client->set_connected_handler(
-        [this](const std::string& cause)
-        {
-            qDebug() << "MQTT Connection Established!";
-            QMetaObject::invokeMethod(this, [this]() {
-                emit messageReceived("SYSTEM", "Connected!");
-                emit connectedChanged();
-            }, Qt::QueuedConnection);
-        });
-
-    client->set_connection_lost_handler(
-        [this](const std::string& cause)
-        {
-            qWarning() << "Connection LOST:"
-                       << QString::fromStdString(cause);
-            QMetaObject::invokeMethod(this, [this, cause]() {
-                emit messageReceived(
-                    "SYSTEM",
-                    "Connection lost: "
-                        + QString::fromStdString(cause));
-                emit connectedChanged();
-            }, Qt::QueuedConnection);
-        });
-
-    client->set_message_callback(
-        [this](mqtt::const_message_ptr msg)
-        {
-            QString topic =
-                QString::fromStdString(msg->get_topic());
-            QString payload =
-                QString::fromStdString(msg->get_payload_str());
-
-            // Bridge to UI thread
-            QMetaObject::invokeMethod(
-                this, [this, topic, payload]()
-                {
-                    emit messageReceived(topic, payload);
-
-                }, Qt::QueuedConnection);
-        });
-
-    return true;
+    return m_client->state() == QMqttClient::Connected;
 }
 
-Q_INVOKABLE bool MqttTransceiver::publish(
-        const QString& topic, const QString& payload, int qos)
-    {
-        if (!client || !client->is_connected()) return false;
-        try {
-            client->publish(
-                topic.toStdString(), payload.toStdString(),
-                qos, false);
-            return true;
-        } catch (const mqtt::exception& exc) {
-            qWarning() << "Publish failed:" << exc.what();
-            return false;
-        }
-    }
+void MqttTransceiver::connectToBroker(const QString &host, int port)
+{
+    if (m_client->state() != QMqttClient::Disconnected)
+        m_client->disconnectFromHost();
 
-#endif
+    m_client->setHostname(host);
+    m_client->setPort(port);
+    m_client->setClientId(
+        "SkyDebuggerClient_");
+        //+ QString::number(qrand(), 16));
+    m_client->connectToHostWebSocket();
 
-#ifndef USE_PAHO
-#include "mqtttransceiver.h"
-#include <QDebug>
+    default_subscribe();
+}
 
-    MqttTransceiver::MqttTransceiver(QObject *parent)
-        : QObject(parent), m_client(new QMqttClient(this))
-    {
-        // Assign a unique client ID
-        m_client->setClientId("SkyDebuggerClient");
+void MqttTransceiver::disconnectFromBroker()
+{
+    m_client->disconnectFromHost();
+}
 
-        // Connect Qt's signals to our slots
-        connect(m_client, &QMqttClient::connected,
-                this, &MqttTransceiver::onConnected);
-        connect(m_client, &QMqttClient::disconnected,
-                this, &MqttTransceiver::onDisconnected);
-    }
+void MqttTransceiver::subscribe(const QString &topic, int qos)
+{
+    if (!isConnected()) return;
 
-    MqttTransceiver::~MqttTransceiver() {}
+    auto subscription = m_client->subscribe(
+        QMqttTopicFilter(topic), static_cast<quint8>(qos));
 
-    bool MqttTransceiver::connectToBroker(
-        const QString& ip, const QString& port)
-    {
-        // Qt MQTT uses a hostname + port pattern
-        m_client->setHostname(ip);
-        m_client->setPort(port.toUShort());
-
-        qDebug() << "Connecting to" << ip << ":" << port;
-        m_client->connectToHost();
-
-        return true; // Actual connection is async
-    }
-
-    bool MqttTransceiver::subscribe(
-        const QString& topic, quint8 qos)
-    {
-        if (!isConnected()) return false;
-
-        QMqttSubscription *subscription =
-            m_client->subscribe(topic, qos);
-
-        if (!subscription) {
-            qWarning() << "Subscribe failed:" << topic;
-            return false;
-        }
-
-        // Connect the subscription's message signal
-        connect(subscription, &QMqttSubscription::messageReceived,
-                this, [this, topic](const QMqttMessage& msg) {
-                    QString payload = QString::fromUtf8(
-                        msg.payload());
-                    emit messageReceived(topic, payload);
-                });
-
-        qDebug() << "Subscribed to:" << topic << "with QOS:"
-                 << qos;
+    if (!subscription) {
         emit messageReceived("SYSTEM",
-                             "Subscribed to: " + topic);
-
-        return true;
+                             "Subscribe failed: " + topic);
+        return;
     }
+    emit messageReceived("SYSTEM", "Subscribed to: " + topic);
+}
 
-    bool MqttTransceiver::publish(
-        const QString& topic, const QString& payload, quint8 qos)
-    {
-        if (!isConnected()) return false;
+void MqttTransceiver::default_subscribe()
+{
+    subscribe("robobot/map", 0);
+    subscribe("robobot/iwo/ang", 0);
+    subscribe("robobot/iwo/pos", 0);
+}
 
-        bool success = m_client->publish(
-            QMqttTopicName(topic),
-            payload.toUtf8(),
-            qos);
+void MqttTransceiver::publish(
+    const QString &topic, const QString &payload, int qos)
+{
+    if (!isConnected()) return;
+    m_client->publish(QMqttTopicName(topic),
+                      payload.toUtf8(),
+                      static_cast<quint8>(qos));
+}
+void MqttTransceiver::onConnected() {
+    qDebug() << "Connected! Registering subscriptions...";
 
-        if (!success) {
-            qWarning() << "Publish failed:" << topic;
-        }
-
-        return success;
-    }
-
-    void MqttTransceiver::onConnected()
-    {
-        qDebug() << "MQTT Connection Established!";
-        emit messageReceived("SYSTEM", "Connected!");
-        emit connectedChanged();
-        subscribeDefault();
-    }
-
-    void MqttTransceiver::onDisconnected()
-    {
-        qWarning() << "MQTT Connection lost";
-        emit messageReceived("SYSTEM", "Connection lost");
-        emit connectedChanged();
-    }
-
-    void MqttTransceiver::subscribeDefault()
-    {
-        subscribe("foo", 0);
-        subscribe("robobot/cmd/ti", 0);
-        subscribe("robobot/cmd/T0", 0);
-        subscribe("robobot/graph", 0);
-    }
-
-    void MqttTransceiver::setupHandlers()
-    {
-        // No longer needed! Qt's signals handle everything.
-    }
-
-#endif
+    default_subscribe();
+}

@@ -1,14 +1,41 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import com.mqtt.transceiver 1.0
 import QtGraphs
+import com.mqtt.transceiver 1.0
+// import "js/mqttclient.js" as MqttClient
+
 
 Window {
     width: 1000
     height: 800
     visible: true
     title: "MQTT Debugger"
+
+    // Component.onCompleted: {
+    //         MqttClient.init(txrx)
+    //     }
+
+    property int mapPointWidth: 12
+    property int mapPointRadius: mapPointWidth/2
+    property int arrowLength: 20
+    property int arrowWidth: 4
+
+    property int mapDataDelegateCounter: 0
+    property int mapPrescaleMax: 50
+    property int mapPrescaler: 0
+
+    property int angIndexCounter: 1
+    property int pitchIndexCounter: 1
+    property int yawIndexCounter: 1
+
+    property int xIndexCounter: 1
+    property int yIndexCounter: 1
+    property int zIndexCounter: 1
+
+    ListModel {
+        id: mapDataModel
+    }
 
 
     MqttTransceiver {
@@ -21,13 +48,72 @@ Window {
                 "timestamp": new Date().toLocaleTimeString()
             })
 
-            if(topic == "robobot/graph")
+            console.log("Msg Received. Topic: " + topic + " Payload: ", payload)
+
+            if(topic == "robobot/map")
+            {
+                if(mapPrescaler != mapPrescaleMax)
+                {
+                    mapPrescaler++
+                }
+                else
+                {
+                    const tokens = payload.split(" ")
+                    if(tokens.length >= 3)
+                    {
+                        console.log("Map command")
+
+                        let x = parseFloat(tokens[0])
+                        let y = parseFloat(tokens[1])
+                        let h = parseFloat(tokens[2])
+
+                        mapDataModel.append({"heading": h})
+
+                        // posGraph.append(x, y)
+                        // maybe flipping it helps
+                        posGraph.append(y, x)
+                    }
+                    mapPrescaler = 0
+                }
+
+                //graph.addPoint(x, y)
+                //graph.addPoint(y)
+            }
+            else if(topic == "robobot/iwo/ang")
             {
                 const tokens = payload.split(" ")
-                x = parseFloat(tokens[0])
-                y = parseFloat(tokens[1])
-                graph.addPoint(x, y)
-                //graph.addPoint(y)
+                if(tokens.length >= 3)
+                {
+                    let roll = parseFloat(tokens[0])
+                    let pitch = parseFloat(tokens[1])
+                    let yaw = parseFloat(tokens[2])
+
+                    fusedRollGraph.append(angIndexCounter, roll)
+                    fusedPitchGraph.append(pitchIndexCounter, pitch)
+                    fusedYawGraph.append(yawIndexCounter, yaw)
+
+                    angIndexCounter++
+                    pitchIndexCounter++
+                    yawIndexCounter++
+                }
+            }
+            else if(topic == "robobot/iwo/pos")
+            {
+                const tokens = payload.split(" ")
+                if(tokens.length >= 3)
+                {
+                    let x = parseFloat(tokens[0])
+                    let y = parseFloat(tokens[1])
+                    let z = parseFloat(tokens[2])
+
+                    fusedXGraph.append(xIndexCounter, x)
+                    fusedYGraph.append(yIndexCounter, y)
+                    fusedZGraph.append(zIndexCounter, z)
+
+                    xIndexCounter++
+                    yIndexCounter++
+                    zIndexCounter++
+                }
             }
 
             // if (messageModel.count > 200) {
@@ -64,7 +150,10 @@ Window {
                 text: "Robot Control"
             }
             TabButton {
-                text: "Graphs"
+                text: "Sensor Readings"
+            }
+            TabButton {
+                text: "Map"
             }
         }
 
@@ -100,8 +189,8 @@ Window {
 
                             TextField {
                                 id: portInput
-                                placeholderText: "1885"
-                                text: "1885"
+                                placeholderText: "9001"
+                                text: "9001"
                                 Layout.preferredWidth: 80
                                 validator: IntValidator {
                                     bottom: 1; top: 65535
@@ -113,9 +202,13 @@ Window {
                                     ? "Connected" : "Connect"
                                 enabled: !txrx.connected
                                 onClicked: {
+                                    // MqttClient.connectToBroker(
+                                    //     ipInput.text,
+                                    //     portInput.text)
                                     txrx.connectToBroker(
                                         ipInput.text,
                                         portInput.text)
+                                    console.log("Connecting to broker")
                                 }
                             }
                         }
@@ -149,6 +242,9 @@ Window {
                                 onClicked: {
                                     if (subTopicInput.text
                                         !== "") {
+                                        // MqttClient.subscribe(
+                                        //     subTopicInput.text,
+                                        //     subQosInput.value)
                                         txrx.subscribe(
                                             subTopicInput.text,
                                             subQosInput.value)
@@ -184,6 +280,10 @@ Window {
                                     if (pubTopicInput.text
                                             !== ""
                                         && text !== "") {
+                                            // MqttClient.publish(
+                                            //     pubTopicInput.text,
+                                            //     text,
+                                            //     pubQosInput.value)
                                         txrx.publish(
                                             pubTopicInput.text,
                                             text,
@@ -207,6 +307,10 @@ Window {
                                             !== ""
                                         && pubPayloadInput.text
                                             !== "") {
+                                        // MqttClient.publish(
+                                        //     pubTopicInput.text,
+                                        //     pubPayloadInput.text,
+                                        //     pubQosInput.value)
                                         txrx.publish(
                                             pubTopicInput.text,
                                             pubPayloadInput
@@ -410,6 +514,7 @@ Window {
                                 Layout.preferredWidth: 60
                                 onClicked:
                                 {
+                                    // MqttClient.publish(mappingTopicInput.text, mappingCommand.text, 0)
                                     txrx.publish(mappingTopicInput.text, mappingCommand.text, 0)
                                     console.log("mappingCommandSend pressed")
                                 }
@@ -467,6 +572,10 @@ Window {
                                 if (cmd !== ""
                                     && txrx.connected)
                                 {
+                                    // MqttClient.publish(
+                                    //     controlTopicInput.text,
+                                    //     cmd,
+                                    //     0)
                                     txrx.publish(
                                         controlTopicInput
                                             .text,
@@ -590,57 +699,362 @@ Window {
                 }
             }
 
-            Item
-            {
-                GraphsView
-                {
-                    id: graphView
+            // Sensor Readings tab
+            Item {
+                id: sensorTab
+
+
+                ColumnLayout {
+                    anchors.centerIn: parent
                     anchors.fill: parent
+                    spacing: 5
 
-                    axisX: ValueAxis
+                    Text
                     {
-                        max: 5
+                        text: "Fused Position Sensor Data"
+                        color: "black"
+                        font.bold: true
+                        font.pixelSize: 18
+                        Layout.alignment: Qt.AlignHCenter
                     }
-                    axisY: ValueAxis
-                    {
-                        max: 5
-                        //min: 5
-                    }
 
-                    LineSeries
+                    GraphsView
                     {
-                        id: graph
-                        color: "#00ff00"
-                        axisX: axisX
-                        axisY: axisY
-                        // XYPoint { x: 0.5; y: 0.5 }
-                        // XYPoint { x: 1; y: 1 }
-                        // XYPoint { x: 2; y: 2 }
-                        // XYPoint { x: 2.5; y: 1.5 }
+                        id: fusedPosView
 
-                        function addPoint(x, y)
+                        height: 400
+                        Layout.fillWidth: true
+
+                        theme: GraphsTheme
                         {
-                            if(axisX.max < (x + 5))
+                            id: posTheme
+                            readonly property color c1: 'light blue'
+                            readonly property color c2: 'red'
+                            readonly property color c3: 'light green'
+                            // colorScheme: GraphsTheme.ColorScheme.Dark
+                            seriesColors: [c1, c2, c3]
+                        }
+
+                        axisX: ValueAxis
+                        {
+                            max: 50000
+                            min: 0
+                        }
+
+                        axisY: ValueAxis
+                        {
+                            max: 5
+                            min: -5
+                        }
+
+                        LineSeries
+                        {
+                            id: fusedXGraph
+                            // color: posTheme.c1
+                        }
+
+                        LineSeries
+                        {
+                            id: fusedYGraph
+                            // color: posTheme.c2
+                        }
+
+                        LineSeries
+                        {
+                            id: fusedZGraph
+                            // color: posTheme.c3
+                        }
+
+                    }
+
+                    Row
+                    {
+                        Layout.alignment: Qt.AlignCenter
+                        spacing: 50
+                        Text
+                        {
+                            text: "X"
+                            color: "light blue"
+                            // color: fusedXGraph.color
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+                        Text
+                        {
+                            text: "Y"
+                            color: "red"
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+                        Text
+                        {
+                            text: "Z"
+                            color: "light green"
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+                    }
+
+                    Text
+                    {
+                        text: "Fused Angle Sensor Data"
+                        color: "black"
+                        font.bold: true
+                        font.pixelSize: 18
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+
+                    GraphsView
+                    {
+                        id: fusedAngView
+
+                        height: 400
+                        Layout.fillWidth: true
+
+                        theme: GraphsTheme
+                        {
+                            id: angTheme
+                            readonly property color c1: 'light blue'
+                            readonly property color c2: 'red'
+                            readonly property color c3: 'light green'
+                            // colorScheme: GraphsTheme.ColorScheme.Dark
+                            seriesColors: [c1, c2, c3]
+                        }
+
+                        axisX: ValueAxis
+                        {
+                            max: 50000
+                            min: 0
+                        }
+
+                        axisY: ValueAxis
+                        {
+                            max: 180
+                            min: -180
+                        }
+
+                        LineSeries
+                        {
+                            id: fusedRollGraph
+                            // color: angTheme.c1
+
+                            HoverHandler
                             {
-                                this.axisX.max += 20;
+                                id: fusedRollPointHover
                             }
 
-                            if(this.axisY.max < (y + 5))
-                            {
-                                graphView.axisY.max += 20;
-                            }
-                            if(axisY.min > (y - 5))
-                            {
-                                graphView.axisY.min += 20;
-                            }
+                            // ToolTip
+                            // {
+                            //     visible: fusedRollPointHover.hovered
+                            //     text:
+                            //         "X: " + container.x + "Y: " + container.x + "Heading: " + container.heading
+                            // }
+                        }
+
+                        LineSeries
+                        {
+                            id: fusedPitchGraph
+                            // color: angTheme.c2
+                        }
+
+                        LineSeries
+                        {
+                            id: fusedYawGraph
+                            // color: angTheme.c3
+                        }
 
 
-                            graph.append(x, y)
+                    }
+
+                    Row
+                    {
+                        Layout.alignment: Qt.AlignCenter
+                        spacing: 50
+                        Text
+                        {
+                            text: "Roll"
+                            color: "light blue"
+                            // color: fusedXGraph.color
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+                        Text
+                        {
+                            text: "Pitch"
+                            color: "red"
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+                        Text
+                        {
+                            text: "Yaw"
+                            color: "light green"
+                            font.pixelSize: 15
+                            font.bold: true
                         }
                     }
                 }
-
             }
+            // Map Tab
+            Item {
+                id: mapTab
+
+                GraphsView {
+                    id: graphView
+                    anchors.fill: parent
+
+                    axisX: ValueAxis {
+                        max: 5
+                        min: -5
+                        tickInterval: 1
+                    }
+                    axisY: ValueAxis {
+                        max: 5
+                        min: -5
+                        tickInterval: 1
+                    }
+
+                    ScatterSeries
+                    {
+                        id: posGraph
+                        color: "#00ff00"
+
+                        property int mapDataDelegateCounter: 0
+                        // property int delegateIndex: -1
+
+                        // model: mapDataModel
+                        // xRole: "xPos"
+                        // yRole: "yPos"
+
+                        pointDelegate: Component {
+                            Item {
+                                id: container
+
+                                // readonly property int delegateIndex: posGraph.mapDataDelegateCounter
+                                property int delegateIndex: -1
+
+                                readonly property real heading: {
+                                    if (mapDataModel.count > delegateIndex) {
+                                        var data = mapDataModel.get(delegateIndex);
+                                        console.log("Heading extracted: " + data.heading)
+                                        return data ? data.heading - (Math.PI/2) : 0;
+                                    }
+                                    return 0;
+                                }
+
+                                Component.onCompleted:
+                                {
+                                    container.delegateIndex = posGraph.mapDataDelegateCounter
+                                    posGraph.mapDataDelegateCounter++
+                                }
+
+                                width: 32
+                                height: 32
+
+                                HoverHandler
+                                {
+                                    id: pointHover
+                                }
+
+                                ToolTip
+                                {
+                                    visible: pointHover.hovered
+                                    text:
+                                        "Index: " + container.delegateIndex + " X: " + container.x.toPrecision(3) + " Y: " + container.x.toPrecision(3) + " Heading: " + container.heading.toPrecision(3)
+                                }
+
+                                Rectangle
+                                {
+                                    x: -width / 2
+                                    y: -height / 2
+                                    width: mapPointWidth /2
+                                    height: mapPointWidth /2
+                                    radius: mapPointRadius
+                                    color: "dodgerblue"
+                                }
+
+                                // The Arrow Body
+                                Rectangle
+                                {
+                                    x: -(arrowWidth / 2)
+                                    y: -arrowLength
+
+                                    width: arrowWidth / 8
+                                    height: arrowLength
+                                    color: "dodgerblue"
+                                    transformOrigin: Item.Bottom
+
+                                    rotation: container.heading
+
+                                    // The Arrowhead
+                                    // Rectangle {
+                                    //     width: arrowWidth
+                                    //     height: arrowWidth
+                                    //     // color: "red"
+                                    //     color: "dodgerblue"
+                                    //     rotation: 45
+                                    //     anchors.top: parent.top
+                                    //     anchors.horizontalCenter: parent.horizontalCenter
+                                    // }
+                                }
+
+                            }
+                        }
+
+
+                        // XYPoint { x: 1; y: 1 }
+                        // XYPoint { x: 2; y: 2 }
+                        // XYPoint { x: 2.5; y: 1.5 }
+                    }
+                }
+            }
+
+            //         /*
+            //         axisX: ValueAxis
+            //         {
+            //             max: 5
+            //         }
+            //         axisY: ValueAxis
+            //         {
+            //             max: 5
+            //             //min: 5
+            //         }
+
+            //         LineSeries
+            //         {
+            //             id: graph
+            //             color: "#00ff00"
+            //             axisX: axisX
+            //             axisY: axisY
+            //             // XYPoint { x: 0.5; y: 0.5 }
+            //             // XYPoint { x: 1; y: 1 }
+            //             // XYPoint { x: 2; y: 2 }
+            //             // XYPoint { x: 2.5; y: 1.5 }
+
+            //             function addPoint(x, y)
+            //             {
+            //                 if(axisX.max < (x + 5))
+            //                 {
+            //                     this.axisX.max += 20;
+            //                 }
+
+            //                 if(this.axisY.max < (y + 5))
+            //                 {
+            //                     graphView.axisY.max += 20;
+            //                 }
+            //                 if(axisY.min > (y - 5))
+            //                 {
+            //                     graphView.axisY.min += 20;
+            //                 }
+
+
+            //                 graph.append(x, y)
+            //             }
+            //         }
+            //         */
+            //     }
+
+            // }
         }
     }
 
